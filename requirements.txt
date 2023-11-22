@@ -1,0 +1,10 @@
+black
+botorch
+git+https://github.com/desy-ml/cheetah.git  # TODO: Update to cheetah-accelerator>=0.6.2
+flake8
+isort
+jupyter
+matplotlib
+numpy
+pyyaml
+xopt>=2.0.0

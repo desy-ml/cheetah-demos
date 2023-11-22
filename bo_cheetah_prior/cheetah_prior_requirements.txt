@@ -1,6 +1,0 @@
-botorch
-cheetah-accelerator>=0.6.0
-matplotlib
-numpy
-pyyaml
-xopt>=2.0.0
