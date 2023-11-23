@@ -4,9 +4,13 @@ git+https://github.com/desy-ml/cheetah.git  # TODO: Update to cheetah-accelerato
 flake8
 isort
 jupyter
+lightning
 matplotlib
 numpy
+git+https://github.com/ocelot-collab/ocelot.git
 pyyaml
 scikit-learn
+torch
 tqdm
 xopt>=2.0.0
+wandb
