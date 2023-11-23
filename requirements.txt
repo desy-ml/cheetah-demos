@@ -6,6 +6,8 @@ isort
 jupyter
 lightning
 matplotlib
+numba
+numexpr
 numpy
 git+https://github.com/ocelot-collab/ocelot.git
 pyyaml
