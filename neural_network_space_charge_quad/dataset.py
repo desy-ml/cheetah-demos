@@ -89,7 +89,7 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
         )
 
 
-class EuXFELCurrentDataModule(L.LightningDataModule):
+class OcelotSpaceChargeQuadrupoleDataModule(L.LightningDataModule):
     """
     Data Module for beams tracked through quadrupole magnets with space charge using
     Ocelot.
