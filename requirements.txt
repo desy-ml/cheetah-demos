@@ -7,4 +7,6 @@ jupyter
 matplotlib
 numpy
 pyyaml
+scikit-learn
+tqdm
 xopt>=2.0.0
