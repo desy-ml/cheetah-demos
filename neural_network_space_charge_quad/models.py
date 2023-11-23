@@ -22,9 +22,10 @@ class SpaceChargeQuadrupoleMLP(nn.Module):
         super().__init__()
 
         beam_parameter_dims = 15
+        controls_dims = 5
 
         self.input_layer = self.hidden_block(
-            beam_parameter_dims,
+            beam_parameter_dims + controls_dims,
             hidden_layer_width,
             activation=hidden_activation,
             activation_args=hidden_activation_args,
@@ -77,13 +78,12 @@ class SpaceChargeQuadrupoleMLP(nn.Module):
             activation_module,
         )
 
-    def forward(self, rf_settings, formfactor):
-        x = torch.concatenate([rf_settings, formfactor], dim=1)
+    def forward(self, incoming_parameters, controls):
+        x = torch.concatenate([incoming_parameters, controls], dim=1)
         x = self.input_layer(x)
         x = self.hidden_net(x)
-        current_profile = self.current_profile_layer(x)
-        bunch_length = self.bunch_length_layer(x)
-        return current_profile, bunch_length
+        outgoing_parameters = self.output_layer(x)
+        return outgoing_parameters
 
 
 class SupervisedSpaceChargeQuadrupoleInference(LightningModule):
@@ -118,14 +118,14 @@ class SupervisedSpaceChargeQuadrupoleInference(LightningModule):
     def configure_optimizers(self):
         return optim.Adam(self.net.parameters(), lr=self.learning_rate)
 
-    def forward(self, incoming_parameters):
-        outgoing_parameters = self.net(incoming_parameters)
+    def forward(self, incoming_parameters, controls):
+        outgoing_parameters = self.net(incoming_parameters, controls)
         return outgoing_parameters
 
     def training_step(self, batch, batch_idx):
-        incoming_parameters, true_outgoing_parameters = batch
+        (incoming_parameters, controls), true_outgoing_parameters = batch
 
-        predicted_outgoing_parameters = self.net(incoming_parameters)
+        predicted_outgoing_parameters = self.net(incoming_parameters, controls)
 
         loss = self.criterion(predicted_outgoing_parameters, true_outgoing_parameters)
 
@@ -134,9 +134,9 @@ class SupervisedSpaceChargeQuadrupoleInference(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        incoming_parameters, true_outgoing_parameters = batch
+        (incoming_parameters, controls), true_outgoing_parameters = batch
 
-        predicted_outgoing_parameters = self.net(incoming_parameters)
+        predicted_outgoing_parameters = self.net(incoming_parameters, controls)
 
         loss = self.criterion(predicted_outgoing_parameters, true_outgoing_parameters)
 
@@ -145,9 +145,9 @@ class SupervisedSpaceChargeQuadrupoleInference(LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        incoming_parameters, true_outgoing_parameters = batch
+        (incoming_parameters, controls), true_outgoing_parameters = batch
 
-        predicted_outgoing_parameters = self.net(incoming_parameters)
+        predicted_outgoing_parameters = self.net(incoming_parameters, controls)
 
         loss = self.criterion(predicted_outgoing_parameters, true_outgoing_parameters)
 

@@ -35,57 +35,68 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
         self,
         stage: Literal["train", "validation", "test"] = "train",
         normalize: bool = False,
-        scaler: Optional[StandardScaler] = None,
+        beam_parameter_scaler: Optional[StandardScaler] = None,
+        controls_scaler: Optional[StandardScaler] = None,
     ):
         self.normalize = normalize
 
         assert stage in ["train", "validation", "test"]
 
-        # TODO: Read Ocelot beams (incoming and outgoing)
+        # TODO: Read Ocelot beams (incoming and outgoing) + controls
         # TODO: Convert to `cheetah.ParameterBeam`s (incoming and outgoing)
         # TODO: Keep only the beam parameters of the Cheetah beams (incoming and
         # outgoing)
 
         if self.normalize:
-            self.setup_normalization(scaler)
+            self.setup_normalization(beam_parameter_scaler, controls_scaler)
 
     def __len__(self):
         return len(self.incoming_beam_parameters)
 
     def __getitem__(self, index):
-        rf_settings = self.rf_settings[index]
-        formfactor = self.formfactors[index]
-        current_profile = self.current_profiles[index]
-        bunch_length = self.bunch_lengths[index]
+        incoming_parameters = self.incoming_parameters[index]
+        controls = self.controls[index]
+        outgoing_parameters = self.outgoing_parameters[index]
 
         if self.normalize:
-            rf_settings = self.rf_scaler.transform([rf_settings])[0]
-            formfactor = self.formfactor_scaler.transform([formfactor])[0]
-            current_profile = self.current_scaler.transform([current_profile])[0]
-            bunch_length = self.bunch_length_scaler.transform([bunch_length])[0]
+            incoming_parameters = self.beam_parameter_scaler.transform(
+                [incoming_parameters]
+            )[0]
+            controls = self.controls_scaler.transform([controls])[0]
+            outgoing_parameters = self.beam_parameter_scaler.transform(
+                [outgoing_parameters]
+            )[0]
 
-        rf_settings = torch.tensor(rf_settings, dtype=torch.float32)
-        formfactor = torch.tensor(formfactor, dtype=torch.float32)
-        current_profile = torch.tensor(current_profile, dtype=torch.float32)
-        bunch_length = torch.tensor(bunch_length, dtype=torch.float32)
+        incoming_parameters = torch.tensor(incoming_parameters, dtype=torch.float32)
+        controls = torch.tensor(controls, dtype=torch.float32)
+        outgoing_parameters = torch.tensor(outgoing_parameters, dtype=torch.float32)
 
-        return (rf_settings, formfactor), (current_profile, bunch_length)
+        return (incoming_parameters, controls), outgoing_parameters
 
-    def setup_normalization(self, scaler: Optional[StandardScaler] = None) -> None:
+    def setup_normalization(
+        self,
+        beam_parameter_scaler: Optional[StandardScaler] = None,
+        controls_scaler: Optional[StandardScaler] = None,
+    ) -> None:
         """
         Creates a normalisation scaler for the beam parameters in this dataset. Pass
         already fitted scalers that should be used. If a scaler is not passed, a new one
         is fitted to the data in the dataset.
         """
-        self.scaler = (
-            scaler
-            if scaler is not None
+        self.beam_parameter_scaler = (
+            beam_parameter_scaler
+            if beam_parameter_scaler is not None
             else StandardScaler().fit(
                 torch.concatenate(
                     [self.incoming_beam_parameters, self.outgoing_beam_parameters],
                     dim=0,
                 )
             )
+        )
+        self.controls_scaler = (
+            controls_scaler
+            if controls_scaler is not None
+            else StandardScaler().fit(self.controls)
         )
 
 
@@ -108,10 +119,14 @@ class OcelotSpaceChargeQuadrupoleDataModule(L.LightningDataModule):
         self.dataset_val = OcelotSpaceChargeQuadrupoleDataset(
             stage="validation",
             normalize=self.normalize,
-            scaler=self.dataset_train.scaler,
+            beam_parameter_scaler=self.dataset_train.beam_parameter_scaler,
+            controls_scaler=self.dataset_train.controls_scaler,
         )
         self.dataset_test = OcelotSpaceChargeQuadrupoleDataset(
-            stage="test", normalize=self.normalize, scaler=self.dataset_train.scaler
+            stage="test",
+            normalize=self.normalize,
+            beam_parameter_scaler=self.dataset_train.beam_parameter_scaler,
+            controls_scaler=self.dataset_train.controls_scaler,
         )
 
     def train_dataloader(self):
