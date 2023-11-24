@@ -1,5 +1,5 @@
 import argparse
-import multiprocessing
+from concurrent.futures import ProcessPoolExecutor
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -10,7 +10,6 @@ import numpy as np
 import ocelot
 import torch
 import yaml
-from loky import get_reusable_executor
 from ocelot.cpbd.beam import generate_parray
 
 
@@ -148,8 +147,10 @@ def main() -> None:
 
     generate_sample_to_target_dir = partial(generate_sample, target_dir=args.target_dir)
 
-    executor = get_reusable_executor(max_workers=multiprocessing.cpu_count())
-    executor.map(generate_sample_to_target_dir, range(args.num_samples), chunksize=100)
+    with ProcessPoolExecutor() as executor:
+        executor.map(
+            generate_sample_to_target_dir, range(args.num_samples), chunksize=100
+        )
 
 
 if __name__ == "__main__":
