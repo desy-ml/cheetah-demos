@@ -3,21 +3,23 @@ import multiprocessing
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
+from typing import Tuple
 
+import cheetah
 import numpy as np
 import ocelot
+import torch
 import yaml
 from loky import get_reusable_executor
 from ocelot.cpbd.beam import generate_parray
 
 
-def generate_sample(idx: int, target_dir: str) -> None:
+def track_ocelot() -> Tuple[ocelot.ParticleArray, float, float, ocelot.ParticleArray]:
     """
-    Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
-    incoming and outgoing beam parameters as well as controls.
+    Generate beam in Ocelot and control settings, then track the beam through a
+    quadrupole magnet in Ocelot.
 
-    :param idx: Unique index of the sample.
-    :param target_dir: Directory where to save the generated data set.
+    :return: Tuple of incoming beam, length, k1 and outgoing beam.
     """
     # Generate control values
     length = np.random.uniform(0.05, 0.5)
@@ -55,34 +57,83 @@ def generate_sample(idx: int, target_dir: str) -> None:
     p_array = deepcopy(p_array_incoming)
     _, p_array_outgoing = ocelot.track(lattice, p_array, navigator)
 
+    return p_array_incoming, length, k1, p_array_outgoing
+
+
+def compute_ocelot_cheetah_delta(
+    incoming_p_array: ocelot.ParticleArray,
+    length: float,
+    k1: float,
+    outgoing_p_array: ocelot.ParticleArray,
+) -> Tuple[cheetah.ParameterBeam, dict]:
+    """
+    Compute the difference between the Ocelot and Cheetah beam parameters.
+
+    :param incoming: Incoming beam parameters.
+    :param length: Length of the quadrupole magnet.
+    :param k1: k1 of the quadrupole magnet.
+    :param outgoing: Outgoing beam parameters.
+    :return:Tuple of incoming beam converted to Cheetah and a dictionary of differences
+        denoting how the Cheetah beam would have to be changed to match the Ocelot beam
+        considering space charge for the parameters sigma_x, sigma_xp, sigma_y,
+        sigma_yp, sigma_s, sigma_p.
+    """
+    incoming = cheetah.ParameterBeam.from_ocelot(incoming_p_array)
+    outgoing_ocelot = cheetah.ParameterBeam.from_ocelot(outgoing_p_array)
+
+    quadrupole = cheetah.Quadrupole(
+        length=torch.tensor(length, dtype=torch.float32),
+        k1=torch.tensor(k1, dtype=torch.float32),
+    )
+
+    outgoing_cheetah = quadrupole.track(incoming)
+
+    # Compute differences
+    outgoing_deltas = {
+        "sigma_x": (outgoing_ocelot.sigma_x - outgoing_cheetah.sigma_x).item(),
+        "sigma_xp": (outgoing_ocelot.sigma_xp - outgoing_cheetah.sigma_xp).item(),
+        "sigma_y": (outgoing_ocelot.sigma_y - outgoing_cheetah.sigma_y).item(),
+        "sigma_yp": (outgoing_ocelot.sigma_yp - outgoing_cheetah.sigma_yp).item(),
+        "sigma_s": (outgoing_ocelot.sigma_s - outgoing_cheetah.sigma_s).item(),
+        "sigma_p": (outgoing_ocelot.sigma_p - outgoing_cheetah.sigma_p).item(),
+    }
+
+    return incoming, outgoing_deltas
+
+
+def generate_sample(idx: int, target_dir: str) -> None:
+    """
+    Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
+    incoming and outgoing beam parameters as well as controls.
+
+    :param idx: Unique index of the sample.
+    :param target_dir: Directory where to save the generated data set.
+    """
+    # Track beam in Ocelot
+    p_array_incoming, length, k1, p_array_outgoing = track_ocelot()
+
+    # Compute differences between Ocelot and Cheetah
+    incoming_cheetah, outgoing_deltas = compute_ocelot_cheetah_delta(
+        p_array_incoming, length, k1, p_array_outgoing
+    )
+
     # Save incoming and outgoing beam parameters as well as controls
     dataset_dir = Path(target_dir)
     dataset_dir.mkdir(parents=True, exist_ok=True)
     with open(dataset_dir / f"{idx:09d}.yaml", "w") as f:
         sample_dict = {
-            "controls": {"length": length, "k1": k1},
             "incoming": {
-                "sigma_x": p_array_incoming.x().std().item(),
-                "sigma_px": p_array_incoming.px().std().item(),
-                "sigma_y": p_array_incoming.y().std().item(),
-                "sigma_py": p_array_incoming.py().std().item(),
-                "sigma_tau": p_array_incoming.tau().std().item(),
-                "sigma_p": p_array_incoming.p().std().item(),
-                "charge": p_array_incoming.total_charge.item(),
-                "energy": p_array_incoming.E * 1e9,  # Convert from GeV to eV
-                "nparticles": p_array_incoming.size(),
+                "sigma_x": incoming_cheetah.sigma_x.item(),
+                "sigma_xp": incoming_cheetah.sigma_xp.item(),
+                "sigma_y": incoming_cheetah.sigma_y.item(),
+                "sigma_yp": incoming_cheetah.sigma_yp.item(),
+                "sigma_s": incoming_cheetah.sigma_s.item(),
+                "sigma_p": incoming_cheetah.sigma_p.item(),
+                "total_charge": incoming_cheetah.total_charge.item(),
+                "energy": incoming_cheetah.energy.item(),
             },
-            "outgoing": {
-                "sigma_x": p_array_outgoing.x().std().item(),
-                "sigma_px": p_array_outgoing.px().std().item(),
-                "sigma_y": p_array_outgoing.y().std().item(),
-                "sigma_py": p_array_outgoing.py().std().item(),
-                "sigma_tau": p_array_outgoing.tau().std().item(),
-                "sigma_p": p_array_outgoing.p().std().item(),
-                "charge": p_array_outgoing.total_charge.item(),
-                "energy": p_array_outgoing.E * 1e9,  # Convert from GeV to eV
-                "nparticles": p_array_outgoing.size(),
-            },
+            "controls": {"length": length, "k1": k1},
+            "outgoing_deltas": outgoing_deltas,
         }
         yaml.dump(sample_dict, f)
 
@@ -96,9 +147,6 @@ def main() -> None:
     args = parser.parse_args()
 
     generate_sample_to_target_dir = partial(generate_sample, target_dir=args.target_dir)
-
-    # for idx in range(args.num_samples):
-    #     generate_sample_to_target_dir(idx)
 
     executor = get_reusable_executor(max_workers=multiprocessing.cpu_count())
     executor.map(generate_sample_to_target_dir, range(args.num_samples), chunksize=100)
