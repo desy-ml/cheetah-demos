@@ -37,14 +37,6 @@ def generate_sample(idx: int) -> None:
         nparticles=np.random.randint(100_000),
         energy=np.random.uniform(0.001, 1.0),  # GeV
     )
-    mu_x = np.random.uniform(-1e-3, 1e-3)
-    mu_xp = np.random.uniform(-1e-6, 1e-6)
-    mu_y = np.random.uniform(-1e-3, 1e-3)
-    mu_yp = np.random.uniform(-1e-6, 1e-6)
-    p_array_incoming.rparticles[0] += mu_x
-    p_array_incoming.rparticles[1] += mu_xp
-    p_array_incoming.rparticles[2] += mu_y
-    p_array_incoming.rparticles[3] += mu_yp
 
     # Run tracking
     method = {"global": ocelot.SecondTM}
@@ -62,13 +54,35 @@ def generate_sample(idx: int) -> None:
     _, p_array_outgoing = ocelot.track(lattice, p_array, navigator)
 
     # Save incoming and outgoing beam parameters as well as controls
-    sample_dir = Path(f"data/{idx:09d}")
-    sample_dir.mkdir(parents=True, exist_ok=True)
-    with open(sample_dir / "controls.yaml", "w") as f:
-        controls_dict = {"length": length, "k1": k1}
-        yaml.dump(controls_dict, f)
-    ocelot.save_particle_array(sample_dir / "incoming.npz", p_array_incoming)
-    ocelot.save_particle_array(sample_dir / "outgoing.npz", p_array_outgoing)
+    dataset_dir = Path("data/train")
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+    with open(dataset_dir / f"{idx:09d}.yaml", "w") as f:
+        sample_dict = {
+            "controls": {"length": length, "k1": k1},
+            "incoming": {
+                "sigma_x": p_array_incoming.x().std().item(),
+                "sigma_px": p_array_incoming.px().std().item(),
+                "sigma_y": p_array_incoming.y().std().item(),
+                "sigma_py": p_array_incoming.py().std().item(),
+                "sigma_tau": p_array_incoming.tau().std().item(),
+                "sigma_p": p_array_incoming.p().std().item(),
+                "charge": p_array_incoming.total_charge.item(),
+                "energy": p_array_incoming.E,
+                "nparticles": p_array_incoming.size(),
+            },
+            "outgoing": {
+                "sigma_x": p_array_outgoing.x().std().item(),
+                "sigma_px": p_array_outgoing.px().std().item(),
+                "sigma_y": p_array_outgoing.y().std().item(),
+                "sigma_py": p_array_outgoing.py().std().item(),
+                "sigma_tau": p_array_outgoing.tau().std().item(),
+                "sigma_p": p_array_outgoing.p().std().item(),
+                "charge": p_array_outgoing.total_charge.item(),
+                "energy": p_array_outgoing.E,
+                "nparticles": p_array_outgoing.size(),
+            },
+        }
+        yaml.dump(sample_dict, f)
 
 
 def main() -> None:
@@ -77,7 +91,7 @@ def main() -> None:
     args = parser.parse_args()
 
     executor = get_reusable_executor(max_workers=multiprocessing.cpu_count())
-    executor.map(generate_sample, range(args.numsamples))
+    executor.map(generate_sample, range(args.numsamples), chunksize=100)
 
 
 if __name__ == "__main__":
