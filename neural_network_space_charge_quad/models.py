@@ -21,11 +21,11 @@ class SpaceChargeQuadrupoleMLP(nn.Module):
     ):
         super().__init__()
 
-        beam_parameter_dims = 15
-        controls_dims = 5
+        relevant_beam_parameter_dims = 8
+        relevant_beam_parameter_delta_dims = 5
 
         self.input_layer = self.hidden_block(
-            beam_parameter_dims + controls_dims,
+            relevant_beam_parameter_dims,
             hidden_layer_width,
             activation=hidden_activation,
             activation_args=hidden_activation_args,
@@ -44,7 +44,9 @@ class SpaceChargeQuadrupoleMLP(nn.Module):
         ]
         self.hidden_net = nn.Sequential(*blocks)
 
-        self.output_layer = nn.Linear(hidden_layer_width, beam_parameter_dims)
+        self.output_layer = nn.Linear(
+            hidden_layer_width, relevant_beam_parameter_delta_dims
+        )
 
     def hidden_block(
         self,
@@ -119,37 +121,37 @@ class SupervisedSpaceChargeQuadrupoleInference(LightningModule):
         return optim.Adam(self.net.parameters(), lr=self.learning_rate)
 
     def forward(self, incoming_parameters, controls):
-        outgoing_parameters = self.net(incoming_parameters, controls)
-        return outgoing_parameters
+        outgoing_deltas = self.net(incoming_parameters, controls)
+        return outgoing_deltas
 
     def training_step(self, batch, batch_idx):
-        (incoming_parameters, controls), true_outgoing_parameters = batch
+        (incoming_parameters, controls), true_outgoing_deltas = batch
 
-        predicted_outgoing_parameters = self.net(incoming_parameters, controls)
+        predicted_outgoing_deltas = self.net(incoming_parameters, controls)
 
-        loss = self.criterion(predicted_outgoing_parameters, true_outgoing_parameters)
+        loss = self.criterion(predicted_outgoing_deltas, true_outgoing_deltas)
 
         self.log("train/loss", loss)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
-        (incoming_parameters, controls), true_outgoing_parameters = batch
+        (incoming_parameters, controls), true_outgoing_deltas = batch
 
-        predicted_outgoing_parameters = self.net(incoming_parameters, controls)
+        predicted_outgoing_deltas = self.net(incoming_parameters, controls)
 
-        loss = self.criterion(predicted_outgoing_parameters, true_outgoing_parameters)
+        loss = self.criterion(predicted_outgoing_deltas, true_outgoing_deltas)
 
         self.log("validate/loss", loss, sync_dist=True)
 
         return loss
 
     def test_step(self, batch, batch_idx):
-        (incoming_parameters, controls), true_outgoing_parameters = batch
+        (incoming_parameters, controls), true_outgoing_deltas = batch
 
-        predicted_outgoing_parameters = self.net(incoming_parameters, controls)
+        predicted_outgoing_deltas = self.net(incoming_parameters, controls)
 
-        loss = self.criterion(predicted_outgoing_parameters, true_outgoing_parameters)
+        loss = self.criterion(predicted_outgoing_deltas, true_outgoing_deltas)
 
         self.log("test/loss", loss, sync_dist=True)
 
