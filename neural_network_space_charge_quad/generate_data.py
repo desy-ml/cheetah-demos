@@ -37,7 +37,7 @@ def track_ocelot() -> Tuple[ocelot.ParticleArray, float, float, ocelot.ParticleA
         sigma_tau=np.random.uniform(3e-7, 3e-4),
         sigma_p=np.random.uniform(1e-5, 1e-3),
         charge=np.random.uniform(1e-12, 5e-9),
-        nparticles=np.random.randint(100_000),
+        nparticles=100_000,
         energy=np.random.uniform(0.001, 1.0),  # GeV
     )
 
@@ -108,6 +108,9 @@ def generate_sample(idx: int, target_dir: str) -> None:
     :param idx: Unique index of the sample.
     :param target_dir: Directory where to save the generated data set.
     """
+
+    np.random.seed(None)  # Workaround for Ocelot abusing NumPy's global random state
+
     # Track beam in Ocelot
     p_array_incoming, length, k1, p_array_outgoing = track_ocelot()
 
