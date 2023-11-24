@@ -5,6 +5,7 @@ flake8
 isort
 jupyter
 lightning
+loky
 matplotlib
 numba
 numexpr
