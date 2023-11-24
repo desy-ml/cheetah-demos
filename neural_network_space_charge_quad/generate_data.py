@@ -1,6 +1,7 @@
 import argparse
 import multiprocessing
 from copy import deepcopy
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -10,12 +11,13 @@ from loky import get_reusable_executor
 from ocelot.cpbd.beam import generate_parray
 
 
-def generate_sample(idx: int) -> None:
+def generate_sample(idx: int, target_dir: str) -> None:
     """
     Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
     incoming and outgoing beam parameters as well as controls.
 
     :param idx: Unique index of the sample.
+    :param target_dir: Directory where to save the generated data set.
     """
     # Generate control values
     length = np.random.uniform(0.05, 0.5)
@@ -54,7 +56,7 @@ def generate_sample(idx: int) -> None:
     _, p_array_outgoing = ocelot.track(lattice, p_array, navigator)
 
     # Save incoming and outgoing beam parameters as well as controls
-    dataset_dir = Path("data/train")
+    dataset_dir = Path(target_dir)
     dataset_dir.mkdir(parents=True, exist_ok=True)
     with open(dataset_dir / f"{idx:09d}.yaml", "w") as f:
         sample_dict = {
@@ -67,7 +69,7 @@ def generate_sample(idx: int) -> None:
                 "sigma_tau": p_array_incoming.tau().std().item(),
                 "sigma_p": p_array_incoming.p().std().item(),
                 "charge": p_array_incoming.total_charge.item(),
-                "energy": p_array_incoming.E,
+                "energy": p_array_incoming.E * 1e9,  # Convert from GeV to eV
                 "nparticles": p_array_incoming.size(),
             },
             "outgoing": {
@@ -78,7 +80,7 @@ def generate_sample(idx: int) -> None:
                 "sigma_tau": p_array_outgoing.tau().std().item(),
                 "sigma_p": p_array_outgoing.p().std().item(),
                 "charge": p_array_outgoing.total_charge.item(),
-                "energy": p_array_outgoing.E,
+                "energy": p_array_outgoing.E * 1e9,  # Convert from GeV to eV
                 "nparticles": p_array_outgoing.size(),
             },
         }
@@ -87,11 +89,19 @@ def generate_sample(idx: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("numsamples", type=int, help="Number of samples to generate.")
+    parser.add_argument("num_samples", type=int, help="Number of samples to generate.")
+    parser.add_argument(
+        "target_dir", type=str, help="Directory where to save the generated data set."
+    )
     args = parser.parse_args()
 
+    generate_sample_to_target_dir = partial(generate_sample, target_dir=args.target_dir)
+
+    # for idx in range(args.num_samples):
+    #     generate_sample_to_target_dir(idx)
+
     executor = get_reusable_executor(max_workers=multiprocessing.cpu_count())
-    executor.map(generate_sample, range(args.numsamples), chunksize=100)
+    executor.map(generate_sample_to_target_dir, range(args.num_samples), chunksize=100)
 
 
 if __name__ == "__main__":
