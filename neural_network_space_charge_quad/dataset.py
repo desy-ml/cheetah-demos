@@ -28,49 +28,44 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
 
         assert stage in ["train", "validation", "test"]
 
-        data_dir = Path(__file__).parent / "data" / stage
-        sample_dicts = []
-        for sample_file in data_dir.glob("*.yaml"):
-            with open(sample_file, "r") as f:
-                sample_dicts.append(yaml.safe_load(f))
+        data_file = Path(__file__).parent / "data" / f"{stage}.yaml"
+        with open(data_file, "r") as f:
+            sample_dicts = yaml.safe_load(f)
 
-        self.incoming_parameters = torch.tensor(
+        self.incoming = torch.tensor(
             [
-                sample["incoming"][key]
-                for sample in sample_dicts
-                for key in [
-                    "sigma_x",
-                    "sigma_xp",
-                    "sigma_y",
-                    "sigma_yp",
-                    "sigma_s",
-                    "sigma_p",
-                    "total_charge",
-                    "energy",
+                [
+                    sample["incoming"]["sigma_x"],
+                    sample["incoming"]["sigma_xp"],
+                    sample["incoming"]["sigma_y"],
+                    sample["incoming"]["sigma_yp"],
+                    sample["incoming"]["sigma_s"],
+                    sample["incoming"]["sigma_p"],
+                    sample["incoming"]["total_charge"],
+                    sample["incoming"]["energy"],
                 ]
+                for sample in sample_dicts
             ],
             dtype=torch.float32,
         )
         self.controls = torch.tensor(
             [
-                sample["controls"][key]
+                [sample["controls"]["length"], sample["controls"]["k1"]]
                 for sample in sample_dicts
-                for key in ["length", "k1"]
             ],
             dtype=torch.float32,
         )
         self.outgoing_deltas = torch.tensor(
             [
-                sample["outgoing_delta"][key]
-                for sample in sample_dicts
-                for key in [
-                    "sigma_x",
-                    "sigma_xp",
-                    "sigma_y",
-                    "sigma_yp",
-                    "sigma_s",
-                    "sigma_p",
+                [
+                    sample["outgoing_deltas"]["sigma_x"],
+                    sample["outgoing_deltas"]["sigma_xp"],
+                    sample["outgoing_deltas"]["sigma_y"],
+                    sample["outgoing_deltas"]["sigma_yp"],
+                    sample["outgoing_deltas"]["sigma_s"],
+                    sample["outgoing_deltas"]["sigma_p"],
                 ]
+                for sample in sample_dicts
             ],
             dtype=torch.float32,
         )
@@ -84,18 +79,16 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
         return len(self.incoming_beam_parameters)
 
     def __getitem__(self, index):
-        incoming_parameters = self.incoming_parameters[index]
+        incoming = self.incoming[index]
         controls = self.controls[index]
         outgoing_deltas = self.outgoing_deltas[index]
 
         if self.normalize:
-            incoming_parameters = self.beam_parameter_scaler.transform(
-                [incoming_parameters]
-            )[0]
+            incoming = self.incoming_scaler.transform([incoming])[0]
             controls = self.controls_scaler.transform([controls])[0]
             outgoing_deltas = self.outgoing_delta_scaler.transform([outgoing_deltas])[0]
 
-        return (incoming_parameters, controls), outgoing_deltas
+        return (incoming, controls), outgoing_deltas
 
     def setup_normalization(
         self,
@@ -111,7 +104,7 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
         self.incoming_scaler = (
             incoming_scaler
             if incoming_scaler is not None
-            else StandardScaler().fit(self.incoming_parameters)
+            else StandardScaler().fit(self.incoming)
         )
         self.controls_scaler = (
             controls_scaler
