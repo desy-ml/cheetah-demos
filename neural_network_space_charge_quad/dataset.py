@@ -76,7 +76,7 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
             )
 
     def __len__(self):
-        return len(self.incoming_beam_parameters)
+        return len(self.incoming)
 
     def __getitem__(self, index):
         incoming = self.incoming[index]
@@ -84,9 +84,15 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
         outgoing_deltas = self.outgoing_deltas[index]
 
         if self.normalize:
-            incoming = self.incoming_scaler.transform([incoming])[0]
-            controls = self.controls_scaler.transform([controls])[0]
-            outgoing_deltas = self.outgoing_delta_scaler.transform([outgoing_deltas])[0]
+            incoming = torch.from_numpy(
+                self.incoming_scaler.transform([incoming])[0]
+            ).float()
+            controls = torch.from_numpy(
+                self.controls_scaler.transform([controls])[0]
+            ).float()
+            outgoing_deltas = torch.from_numpy(
+                self.outgoing_delta_scaler.transform([outgoing_deltas])[0]
+            ).float()
 
         return (incoming, controls), outgoing_deltas
 
@@ -155,19 +161,29 @@ class OcelotSpaceChargeQuadrupoleDataModule(L.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
+            persistent_workers=True,
         )
 
     def val_dataloader(self):
         return DataLoader(
-            self.dataset_val, batch_size=self.batch_size, num_workers=self.num_workers
+            self.dataset_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            persistent_workers=True,
         )
 
     def test_dataloader(self):
         return DataLoader(
-            self.dataset_test, batch_size=self.batch_size, num_workers=self.num_workers
+            self.dataset_test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            persistent_workers=True,
         )
 
     def predict_dataloader(self):
         return DataLoader(
-            self.dataset_test, batch_size=self.batch_size, num_workers=self.num_workers
+            self.dataset_test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            persistent_workers=True,
         )

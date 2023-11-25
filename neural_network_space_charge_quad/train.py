@@ -4,10 +4,7 @@ from dataset import OcelotSpaceChargeQuadrupoleDataModule
 from lightning import Trainer
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.loggers import WandbLogger
-
-from neural_network_space_charge_quad.models import (
-    SupervisedSpaceChargeQuadrupoleInference,
-)
+from models import SupervisedSpaceChargeQuadrupoleInference
 
 
 def main():
@@ -25,7 +22,7 @@ def main():
     config = dict(wandb_logger.experiment.config)
 
     data_module = OcelotSpaceChargeQuadrupoleDataModule(
-        batch_size=config["batch_size"], num_workers=0, normalize=True
+        batch_size=config["batch_size"], num_workers=10, normalize=True
     )
     model = SupervisedSpaceChargeQuadrupoleInference(
         batch_normalization=config["batch_normalization"],
