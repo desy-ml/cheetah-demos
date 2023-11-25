@@ -1,9 +1,8 @@
 import argparse
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import deepcopy
-from functools import partial
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, Tuple
 
 import cheetah
 import numpy as np
@@ -100,13 +99,10 @@ def compute_ocelot_cheetah_delta(
     return incoming, outgoing_deltas
 
 
-def generate_sample(idx: int, target_dir: str) -> None:
+def generate_sample() -> Dict:
     """
     Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
     incoming and outgoing beam parameters as well as controls.
-
-    :param idx: Unique index of the sample.
-    :param target_dir: Directory where to save the generated data set.
     """
 
     np.random.seed(None)  # Workaround for Ocelot abusing NumPy's global random state
@@ -119,41 +115,40 @@ def generate_sample(idx: int, target_dir: str) -> None:
         p_array_incoming, length, k1, p_array_outgoing
     )
 
-    # Save incoming and outgoing beam parameters as well as controls
-    dataset_dir = Path(target_dir)
-    dataset_dir.mkdir(parents=True, exist_ok=True)
-    with open(dataset_dir / f"{idx:09d}.yaml", "w") as f:
-        sample_dict = {
-            "incoming": {
-                "sigma_x": incoming_cheetah.sigma_x.item(),
-                "sigma_xp": incoming_cheetah.sigma_xp.item(),
-                "sigma_y": incoming_cheetah.sigma_y.item(),
-                "sigma_yp": incoming_cheetah.sigma_yp.item(),
-                "sigma_s": incoming_cheetah.sigma_s.item(),
-                "sigma_p": incoming_cheetah.sigma_p.item(),
-                "total_charge": incoming_cheetah.total_charge.item(),
-                "energy": incoming_cheetah.energy.item(),
-            },
-            "controls": {"length": length, "k1": k1},
-            "outgoing_deltas": outgoing_deltas,
-        }
-        yaml.dump(sample_dict, f)
+    # Return dictionary of incoming and outgoing beam parameters as well as controls
+    return {
+        "incoming": {
+            "sigma_x": incoming_cheetah.sigma_x.item(),
+            "sigma_xp": incoming_cheetah.sigma_xp.item(),
+            "sigma_y": incoming_cheetah.sigma_y.item(),
+            "sigma_yp": incoming_cheetah.sigma_yp.item(),
+            "sigma_s": incoming_cheetah.sigma_s.item(),
+            "sigma_p": incoming_cheetah.sigma_p.item(),
+            "total_charge": incoming_cheetah.total_charge.item(),
+            "energy": incoming_cheetah.energy.item(),
+        },
+        "controls": {"length": length, "k1": k1},
+        "outgoing_deltas": outgoing_deltas,
+    }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("num_samples", type=int, help="Number of samples to generate.")
     parser.add_argument(
-        "target_dir", type=str, help="Directory where to save the generated data set."
+        "target_file", type=str, help="File where to save the generated data set."
     )
     args = parser.parse_args()
 
-    generate_sample_to_target_dir = partial(generate_sample, target_dir=args.target_dir)
-
     with ProcessPoolExecutor() as executor:
-        executor.map(
-            generate_sample_to_target_dir, range(args.num_samples), chunksize=100
-        )
+        futures = [executor.submit(generate_sample) for _ in range(args.num_samples)]
+        results = [future.result() for future in as_completed(futures)]
+
+    # Save results to YAML file
+    target_file = Path(args.target_file)
+    target_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(target_file, "w") as f:
+        yaml.dump(results, f)
 
 
 if __name__ == "__main__":

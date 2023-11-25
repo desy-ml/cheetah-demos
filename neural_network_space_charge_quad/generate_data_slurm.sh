@@ -12,6 +12,6 @@ source ~/.bashrc
 conda activate cheetah-demos
 cd /home/kaiserja/beegfs/cheetah-demos/neural_network_space_charge_quad
 
-srun python generate_data.py 20000 data/test
+srun python generate_data.py 20000 data_2/test.yaml
 
 exit
