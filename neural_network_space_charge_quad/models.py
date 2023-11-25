@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 import torch
 from lightning import LightningModule
@@ -15,7 +15,9 @@ class SpaceChargeQuadrupoleMLP(nn.Module):
         self,
         num_hidden_layers: int = 3,
         hidden_layer_width: int = 100,
-        hidden_activation: str = "relu",
+        hidden_activation: Optional[
+            Literal["ReLU", "LeakyReLU", "Softplus", "Sigmoid", "Tanh"]
+        ] = "ReLU",
         hidden_activation_args: dict = {},
         batch_normalization: bool = True,
     ):
@@ -54,7 +56,9 @@ class SpaceChargeQuadrupoleMLP(nn.Module):
         in_features: int,
         out_features: int,
         bias: bool = True,
-        activation: Optional[str] = None,
+        activation: Optional[
+            Literal["ReLU", "LeakyReLU", "Softplus", "Sigmoid", "Tanh"]
+        ] = None,
         activation_args: dict = {},
         batch_normalization: bool = False,
     ):
@@ -62,18 +66,10 @@ class SpaceChargeQuadrupoleMLP(nn.Module):
         Create a block of a linear layer and an activation, meant to be used as a hidden
         layer in this architecture.
         """
-        if activation == "relu":
-            activation_module = nn.ReLU(**activation_args)
-        elif activation == "leakyrelu":
-            activation_module = nn.LeakyReLU(**activation_args)
-        elif activation == "softplus":
-            activation_module = nn.Softplus(**activation_args)
-        elif activation == "sigmoid":
-            activation_module = nn.Sigmoid(**activation_args)
-        elif activation == "tanh":
-            activation_module = nn.Tanh(**activation_args)
-        else:
+        if activation is None:
             activation_module = nn.Identity()
+        else:
+            activation_module = getattr(nn, activation)(**activation_args)
 
         return nn.Sequential(
             nn.Linear(in_features, out_features, bias),

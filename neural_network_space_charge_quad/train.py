@@ -11,8 +11,8 @@ def main():
     config = {
         "batch_normalization": False,
         "batch_size": 64,
-        "hidden_activation": "relu",
-        "hidden_layer_width": 100,
+        "hidden_activation": "ReLU",
+        "hidden_layer_width": 128,
         "learning_rate": 1e-3,
         "max_epochs": 10_000,
         "num_hidden_layers": 3,
