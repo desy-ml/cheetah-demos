@@ -25,7 +25,8 @@ def track_ocelot() -> Tuple[ocelot.ParticleArray, float, float, ocelot.ParticleA
 
     # Create Ocelot cell
     quadrupole = ocelot.Quadrupole(l=length, k1=k1)
-    cell = [quadrupole]
+    marker = ocelot.Marker("dummy")
+    cell = [quadrupole, marker]
 
     # Create Ocelot beam
     p_array_incoming = generate_parray(
