@@ -1,6 +1,7 @@
 import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import deepcopy
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Tuple
 
@@ -115,6 +116,8 @@ def generate_sample() -> Dict:
     incoming_cheetah, outgoing_deltas = compute_ocelot_cheetah_delta(
         p_array_incoming, length, k1, p_array_outgoing
     )
+
+    print(f"{datetime.now()}: Generated sample with length {length} and k1 {k1}.")
 
     # Return dictionary of incoming and outgoing beam parameters as well as controls
     return {
