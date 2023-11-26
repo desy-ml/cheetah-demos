@@ -25,7 +25,7 @@ def track_ocelot() -> Tuple[ocelot.ParticleArray, float, float, ocelot.ParticleA
 
     # Create Ocelot cell
     quadrupole = ocelot.Quadrupole(l=length, k1=k1)
-    marker = ocelot.Marker("dummy")
+    marker = ocelot.Marker("dummy")  # This marker is needed for space charge to work
     cell = [quadrupole, marker]
 
     # Create Ocelot beam
