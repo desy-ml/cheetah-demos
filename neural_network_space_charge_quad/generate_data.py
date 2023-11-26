@@ -51,7 +51,7 @@ def track_ocelot() -> Tuple[ocelot.ParticleArray, float, float, ocelot.ParticleA
     space_charge.step = 1
 
     navigator = ocelot.Navigator(lattice)
-    navigator.add_physics_proc(space_charge, quadrupole, quadrupole)
+    navigator.add_physics_proc(space_charge, cell[0], cell[-1])
     navigator.unit_step = 0.02
 
     p_array = deepcopy(p_array_incoming)
