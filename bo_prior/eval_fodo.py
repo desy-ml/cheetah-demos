@@ -6,6 +6,7 @@ import pandas as pd
 import torch
 from xopt import VOCS, Evaluator, Xopt
 from xopt.generators.bayesian import UpperConfidenceBoundGenerator
+from xopt.generators.bayesian.models.standard import StandardModelConstructor
 from xopt.generators.scipy.neldermead import NelderMeadGenerator
 
 import bo_cheetah_prior
@@ -25,6 +26,10 @@ def main(args):
     # Evaluator
     if args.task == "matched":
         incoming_beam = None
+        evaluator = Evaluator(
+            function=bo_cheetah_prior.simple_fodo_problem,
+            function_kwargs={"incoming_beam": incoming_beam},
+        )
     elif args.task == "mismatched":
         incoming_beam = cheetah.ParameterBeam.from_parameters(
             sigma_x=torch.tensor(1e-3),
@@ -33,10 +38,13 @@ def main(args):
             sigma_yp=torch.tensor(1e-4),
             energy=torch.tensor(100e6),
         )
-    evaluator = Evaluator(
-        function=bo_cheetah_prior.simple_fodo_problem,
-        function_kwargs={"incoming_beam": incoming_beam},
-    )
+        evaluator = Evaluator(
+            function=bo_cheetah_prior.simple_fodo_problem,
+            function_kwargs={
+                "incoming_beam": incoming_beam,
+                "lattice_distances": {"drift_length": 0.8},
+            },
+        )
 
     # Empty dataframe to store results
     df = pd.DataFrame()
@@ -47,11 +55,13 @@ def main(args):
 
         # Initialize Generator
         if args.optimizer == "BO":
-            generator = UpperConfidenceBoundGenerator(beta=1.0, vocs=vocs)
+            generator = UpperConfidenceBoundGenerator(beta=2.0, vocs=vocs)
         elif args.optimizer == "BO_prior":
-            prior_mean_module = bo_cheetah_prior.FodoPriorMean()
+            gp_constructor = StandardModelConstructor(
+                mean_modules={"mae": bo_cheetah_prior.FodoPriorMean()}
+            )
             generator = UpperConfidenceBoundGenerator(
-                beta=1.0, vocs=vocs, prior_mean_module=prior_mean_module
+                beta=2.0, vocs=vocs, gp_constructor=gp_constructor
             )
         elif args.optimizer == "NM":
             generator = NelderMeadGenerator(vocs=vocs)
@@ -64,11 +74,19 @@ def main(args):
             generator=generator,
             max_evaluations=args.max_evaluation_steps,
         )
+        # Fixed starting point
+        xopt.evaluate_data(
+            {
+                "q1": -20.0,
+                "q2": 25.0,
+            }
+        )
         # Start Optimization
         xopt.run()
         # Post processing the dataframes
         xopt.data.index.name = "step"
         xopt.data["run"] = i
+        xopt.data["best_mae"] = xopt.data["mae"].cummin()
         for col in xopt.data.columns:
             xopt.data[col] = xopt.data[col].astype(float)
         df = pd.concat([df, xopt.data])
