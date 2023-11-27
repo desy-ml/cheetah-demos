@@ -102,14 +102,16 @@ def compute_ocelot_cheetah_delta(
     return incoming, outgoing_deltas
 
 
-def generate_sample(idx: int) -> Dict:
+def generate_sample() -> Dict:
     """
     Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
     incoming and outgoing beam parameters as well as controls.
     """
-    print(f"{datetime.now()}: Starting sample {idx}.")
 
     np.random.seed(None)  # Workaround for Ocelot abusing NumPy's global random state
+
+    idx = np.random.randint(0, 2**32 - 1)
+    print(f"{datetime.now()}: Starting sample {idx}.")
 
     # Track beam in Ocelot
     p_array_incoming, length, k1, p_array_outgoing = track_ocelot()
@@ -147,10 +149,10 @@ def main() -> None:
     args = parser.parse_args()
 
     with ProcessPoolExecutor() as executor:
-        futures = executor.map(generate_sample, range(args.num_samples), chunksize=1)
+        futures = [executor.submit(generate_sample) for _ in range(args.num_samples)]
         results = [
             future.result()
-            for future in tqdm(as_completed(futures), total=args.num_samples)
+            for future in tqdm(as_completed(futures), total=len(futures))
         ]
 
     # Save results to YAML file
