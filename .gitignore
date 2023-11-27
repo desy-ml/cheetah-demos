@@ -1,0 +1,7 @@
+*.out
+
+.DS_Store
+__pycache__
+wandb
+
+neural_network_space_charge_quad/space-charge-quadrupole

@@ -1,0 +1,18 @@
+black
+botorch
+git+https://github.com/desy-ml/cheetah.git  # TODO: Update to cheetah-accelerator>=0.6.2
+flake8
+isort
+jupyter
+lightning
+matplotlib
+numba
+numexpr
+numpy
+git+https://github.com/ocelot-collab/ocelot.git
+pyyaml
+scikit-learn
+torch
+tqdm
+xopt>=2.0.0
+wandb
