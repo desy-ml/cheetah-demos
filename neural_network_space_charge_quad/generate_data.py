@@ -11,6 +11,7 @@ import ocelot
 import torch
 import yaml
 from ocelot.cpbd.beam import generate_parray
+from tqdm import tqdm
 
 
 def track_ocelot() -> Tuple[ocelot.ParticleArray, float, float, ocelot.ParticleArray]:
@@ -101,11 +102,12 @@ def compute_ocelot_cheetah_delta(
     return incoming, outgoing_deltas
 
 
-def generate_sample() -> Dict:
+def generate_sample(idx: int) -> Dict:
     """
     Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
     incoming and outgoing beam parameters as well as controls.
     """
+    print(f"{datetime.now()}: Starting sample {idx}.")
 
     np.random.seed(None)  # Workaround for Ocelot abusing NumPy's global random state
 
@@ -117,7 +119,7 @@ def generate_sample() -> Dict:
         p_array_incoming, length, k1, p_array_outgoing
     )
 
-    print(f"{datetime.now()}: Generated sample with length {length} and k1 {k1}.")
+    print(f"{datetime.now()}: Finished sample {idx}.")
 
     # Return dictionary of incoming and outgoing beam parameters as well as controls
     return {
@@ -145,8 +147,11 @@ def main() -> None:
     args = parser.parse_args()
 
     with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(generate_sample) for _ in range(args.num_samples)]
-        results = [future.result() for future in as_completed(futures)]
+        futures = executor.map(generate_sample, range(args.num_samples), chunksize=1)
+        results = [
+            future.result()
+            for future in tqdm(as_completed(futures), total=args.num_samples)
+        ]
 
     # Save results to YAML file
     target_file = Path(args.target_file)
