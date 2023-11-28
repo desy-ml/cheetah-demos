@@ -33,7 +33,7 @@ def main():
     )
 
     early_stopping_callback = EarlyStopping(
-        monitor="validate/loss", mode="min", patience=50
+        monitor="validate/loss", mode="min", patience=10
     )
 
     trainer = Trainer(
