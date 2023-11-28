@@ -11,7 +11,10 @@ import ocelot
 import torch
 import yaml
 from ocelot.cpbd.beam import generate_parray
+from retry import retry
 from tqdm import tqdm
+
+# NOTE: This script should be run with `export OMP_NUM_THREADS=1`
 
 
 def track_ocelot() -> Tuple[ocelot.ParticleArray, float, float, ocelot.ParticleArray]:
@@ -102,6 +105,7 @@ def compute_ocelot_cheetah_delta(
     return incoming, outgoing_deltas
 
 
+@retry(ValueError, tries=3)
 def generate_sample() -> Dict:
     """
     Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
@@ -110,9 +114,6 @@ def generate_sample() -> Dict:
 
     np.random.seed(None)  # Workaround for Ocelot abusing NumPy's global random state
 
-    idx = np.random.randint(0, 2**32 - 1)
-    print(f"{datetime.now()}: Starting sample {idx}.")
-
     # Track beam in Ocelot
     p_array_incoming, length, k1, p_array_outgoing = track_ocelot()
 
@@ -120,8 +121,6 @@ def generate_sample() -> Dict:
     incoming_cheetah, outgoing_deltas = compute_ocelot_cheetah_delta(
         p_array_incoming, length, k1, p_array_outgoing
     )
-
-    print(f"{datetime.now()}: Finished sample {idx}.")
 
     # Return dictionary of incoming and outgoing beam parameters as well as controls
     return {

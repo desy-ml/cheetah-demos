@@ -12,6 +12,8 @@ source ~/.bashrc
 conda activate cheetah-demos
 cd /home/kaiserja/beegfs/cheetah-demos/neural_network_space_charge_quad
 
-srun python generate_data.py 20000 data/test.yaml
+export OMP_NUM_THREADS=1    # Much faster when running with parallel samples
+
+python generate_data.py 2000 data/test.yaml
 
 exit
