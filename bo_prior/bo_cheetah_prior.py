@@ -96,7 +96,7 @@ class FodoPriorMean(Mean):
             self.segment.Q1.k1 = input_values[0].float()
             self.segment.Q2.k1 = input_values[1].float()
             out_beam = self.segment(self.incoming_beam)
-            beam_size_mae = torch.mean(out_beam.sigma_x.abs() + out_beam.sigma_y.abs())
+            beam_size_mae = 0.5 * (out_beam.sigma_x.abs() + out_beam.sigma_y.abs())
             y_s[i] = beam_size_mae
         return y_s.reshape(input_shape[:-1])
 
