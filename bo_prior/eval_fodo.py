@@ -42,7 +42,7 @@ def main(args):
             function=bo_cheetah_prior.simple_fodo_problem,
             function_kwargs={
                 "incoming_beam": incoming_beam,
-                "lattice_distances": {"drift_length": 0.8},
+                "lattice_distances": {"drift_length": 0.7},
             },
         )
 
@@ -57,9 +57,17 @@ def main(args):
         if args.optimizer == "BO":
             generator = UpperConfidenceBoundGenerator(beta=2.0, vocs=vocs)
         elif args.optimizer == "BO_prior":
-            gp_constructor = StandardModelConstructor(
-                mean_modules={"mae": bo_cheetah_prior.FodoPriorMean()}
-            )
+            prior_mean_module = bo_cheetah_prior.FodoPriorMean()
+            prior_mean_module.drift_length = 0.5
+            if args.task == "matched":
+                gp_constructor = StandardModelConstructor(
+                    mean_modules={"mae": prior_mean_module}
+                )
+            elif args.task == "mismatched":
+                gp_constructor = StandardModelConstructor(
+                    mean_modules={"mae": prior_mean_module},
+                    trainable_mean_keys=["mae"],  # Allow the prior mean to be trained
+                )
             generator = UpperConfidenceBoundGenerator(
                 beta=2.0, vocs=vocs, gp_constructor=gp_constructor
             )
@@ -78,7 +86,7 @@ def main(args):
         xopt.evaluate_data(
             {
                 "q1": -20.0,
-                "q2": 25.0,
+                "q2": 20.0,
             }
         )
         # Start Optimization
