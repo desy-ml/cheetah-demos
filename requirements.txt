@@ -12,6 +12,7 @@ numpy
 git+https://github.com/ocelot-collab/ocelot.git
 pyyaml
 retry
+SciencePlots
 scikit-learn
 torch
 tqdm
