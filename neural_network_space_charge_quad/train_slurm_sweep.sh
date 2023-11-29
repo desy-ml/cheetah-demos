@@ -12,6 +12,6 @@ source ~/.bashrc
 conda activate cheetah-demos
 cd /home/kaiserja/beegfs/cheetah-demos/neural_network_space_charge_quad
 
-srun wandb agent --count 1 msk-ipc/space-charge-quadrupole/5uq35b1b
+srun wandb agent --count 1 msk-ipc/space-charge-quadrupole/qs3wd316
 
 exit

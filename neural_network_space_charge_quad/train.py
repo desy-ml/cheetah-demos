@@ -9,13 +9,13 @@ from models import SupervisedSpaceChargeQuadrupoleInference
 
 def main():
     config = {
-        "batch_normalization": False,
-        "batch_size": 64,
-        "hidden_activation": "ReLU",
+        "batch_normalization": True,
+        "batch_size": 256,
+        "hidden_activation": "Softplus",
         "hidden_layer_width": 128,
-        "learning_rate": 1e-3,
+        "learning_rate": 0.006883835325349274,
         "max_epochs": 10_000,
-        "num_hidden_layers": 3,
+        "num_hidden_layers": 4,
     }
 
     wandb_logger = WandbLogger(project="space-charge-quadrupole", config=config)
