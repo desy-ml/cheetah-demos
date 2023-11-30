@@ -5,6 +5,16 @@ from lightning import LightningModule
 from torch import nn, optim
 
 
+def target_weighted_mse_loss(
+    predicted: torch.Tensor, target: torch.Tensor
+) -> torch.Tensor:
+    """
+    Compute MSE loss, but weight each sample by the of the target value.
+    """
+    weights = torch.abs(target).mean(dim=1).unsqueeze(dim=1).repeat(1, 6)
+    return torch.mean(weights * (predicted - target) ** 2)
+
+
 class SpaceChargeQuadrupoleMLP(nn.Module):
     """
     MLP model for predicting the transfer of a `cheetah.ParameterBeam` under the
@@ -112,7 +122,9 @@ class SupervisedSpaceChargeQuadrupoleInference(LightningModule):
             batch_normalization=batch_normalization,
         )
 
-        self.criterion = nn.MSELoss()
+        # Loss to increase influence of rare samples with large deviations from linear
+        # beam dynamics
+        self.criterion = target_weighted_mse_loss
 
     def configure_optimizers(self):
         return optim.Adam(self.net.parameters(), lr=self.learning_rate)
