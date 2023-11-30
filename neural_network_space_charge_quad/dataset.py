@@ -19,12 +19,14 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
     def __init__(
         self,
         stage: Literal["train", "validation", "test"] = "train",
+        use_logarithm: bool = False,
         normalize: bool = False,
         incoming_scaler: Optional[StandardScaler] = None,
         controls_scaler: Optional[StandardScaler] = None,
         outgoing_delta_scaler: Optional[StandardScaler] = None,
     ):
         self.normalize = normalize
+        self.use_logarithm = use_logarithm
 
         assert stage in ["train", "validation", "test"]
 
@@ -69,6 +71,11 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
             ],
             dtype=torch.float32,
         )
+
+        # For now the logarithm is only applied to the incoming beam parameters, because
+        # this would not make sense for the controls and outgoing deltas.
+        if self.use_logarithm:
+            self.incoming = torch.log(self.incoming)
 
         if self.normalize:
             self.setup_normalization(
@@ -130,18 +137,22 @@ class OcelotSpaceChargeQuadrupoleDataModule(L.LightningDataModule):
     Ocelot.
     """
 
-    def __init__(self, batch_size=32, normalize=False, num_workers=10):
+    def __init__(
+        self, batch_size=32, use_logarithm=False, normalize=False, num_workers=10
+    ):
         super().__init__()
         self.batch_size = batch_size
         self.normalize = normalize
+        self.use_logarithm = use_logarithm
         self.num_workers = num_workers
 
     def setup(self, stage):
         self.dataset_train = OcelotSpaceChargeQuadrupoleDataset(
-            stage="train", normalize=self.normalize
+            stage="train", use_logarithm=self.use_logarithm, normalize=self.normalize
         )
         self.dataset_val = OcelotSpaceChargeQuadrupoleDataset(
             stage="validation",
+            use_logarithm=self.use_logarithm,
             normalize=self.normalize,
             incoming_scaler=self.dataset_train.incoming_scaler,
             controls_scaler=self.dataset_train.controls_scaler,
@@ -149,6 +160,7 @@ class OcelotSpaceChargeQuadrupoleDataModule(L.LightningDataModule):
         )
         self.dataset_test = OcelotSpaceChargeQuadrupoleDataset(
             stage="test",
+            use_logarithm=self.use_logarithm,
             normalize=self.normalize,
             incoming_scaler=self.dataset_train.incoming_scaler,
             controls_scaler=self.dataset_train.controls_scaler,

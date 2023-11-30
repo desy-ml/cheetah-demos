@@ -124,7 +124,7 @@ class SupervisedSpaceChargeQuadrupoleInference(LightningModule):
 
         # Loss to increase influence of rare samples with large deviations from linear
         # beam dynamics
-        self.criterion = target_weighted_mse_loss
+        self.criterion = torch.nn.MSELoss()
 
     def configure_optimizers(self):
         return optim.Adam(self.net.parameters(), lr=self.learning_rate)

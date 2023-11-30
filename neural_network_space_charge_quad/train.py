@@ -16,13 +16,17 @@ def main():
         "learning_rate": 0.006883835325349274,
         "max_epochs": 10_000,
         "num_hidden_layers": 4,
+        "use_logarithm": True,
     }
 
     wandb_logger = WandbLogger(project="space-charge-quadrupole", config=config)
     config = dict(wandb_logger.experiment.config)
 
     data_module = OcelotSpaceChargeQuadrupoleDataModule(
-        batch_size=config["batch_size"], num_workers=10, normalize=True
+        batch_size=config["batch_size"],
+        num_workers=10,
+        use_logarithm=config["use_logarithm"],
+        normalize=True,
     )
     model = SupervisedSpaceChargeQuadrupoleInference(
         batch_normalization=config["batch_normalization"],
