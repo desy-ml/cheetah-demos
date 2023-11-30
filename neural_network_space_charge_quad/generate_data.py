@@ -34,15 +34,15 @@ def track_ocelot() -> Tuple[ocelot.ParticleArray, float, float, ocelot.ParticleA
 
     # Create Ocelot beam
     p_array_incoming = generate_parray(
-        sigma_x=np.random.uniform(1e-5, 1e-3),
-        sigma_px=np.random.uniform(1e-5, 1e-3),
-        sigma_y=np.random.uniform(1e-5, 1e-3),
-        sigma_py=np.random.uniform(1e-5, 1e-3),
-        sigma_tau=np.random.uniform(3e-7, 3e-4),
-        sigma_p=np.random.uniform(1e-5, 1e-3),
-        charge=np.random.uniform(1e-12, 5e-9),
+        sigma_x=np.exp(np.random.uniform(np.log(1e-5), np.log(1e-3))),
+        sigma_px=np.exp(np.random.uniform(np.log(1e-5), np.log(1e-3))),
+        sigma_y=np.exp(np.random.uniform(np.log(1e-5), np.log(1e-3))),
+        sigma_py=np.exp(np.random.uniform(np.log(1e-5), np.log(1e-3))),
+        sigma_tau=np.exp(np.random.uniform(np.log(3e-7), np.log(3e-4))),
+        sigma_p=np.exp(np.random.uniform(np.log(1e-5), np.log(1e-3))),
+        charge=np.exp(np.random.uniform(np.log(1e-12), np.log(5e-9))),
         nparticles=100_000,
-        energy=np.random.uniform(0.001, 1.0),  # GeV
+        energy=np.exp(np.random.uniform(np.log(0.001), np.log(1.0))),  # GeV
     )
 
     # Run tracking
@@ -104,7 +104,7 @@ def compute_ocelot_cheetah_delta(
     return incoming, outgoing_deltas
 
 
-@retry(ValueError, tries=3)
+@retry(ValueError, tries=10)
 def generate_sample() -> Dict:
     """
     Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
