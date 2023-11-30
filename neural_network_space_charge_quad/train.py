@@ -9,11 +9,11 @@ from models import SupervisedSpaceChargeQuadrupoleInference
 
 def main():
     config = {
-        "batch_normalization": True,
-        "batch_size": 256,
-        "hidden_activation": "Softplus",
-        "hidden_layer_width": 128,
-        "learning_rate": 0.006883835325349274,
+        "batch_normalization": False,
+        "batch_size": 16,
+        "hidden_activation": "Tanh",
+        "hidden_layer_width": 512,
+        "learning_rate": 0.00024377758104682928,
         "max_epochs": 10_000,
         "num_hidden_layers": 4,
         "use_logarithm": True,
