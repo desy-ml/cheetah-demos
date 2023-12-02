@@ -124,7 +124,7 @@ def generate_sample() -> Dict:
     )
 
     # Ensure we only get positive outgoing deltas
-    if any(delta < 0 for delta in outgoing_deltas.values()):
+    if any(delta <= 0 for delta in outgoing_deltas.values()):
         raise ValueError("Negative outgoing deltas")
 
     # Return dictionary of incoming and outgoing beam parameters as well as controls
