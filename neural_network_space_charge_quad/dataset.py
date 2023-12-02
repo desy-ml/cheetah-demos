@@ -72,10 +72,22 @@ class OcelotSpaceChargeQuadrupoleDataset(Dataset):
             dtype=torch.float32,
         )
 
-        # For now the logarithm is only applied to the incoming beam parameters, because
-        # this would not make sense for the controls and outgoing deltas.
         if self.use_logarithm:
             self.incoming = torch.log(self.incoming)
+
+            # as_tuple=True is required to get behaviour similar to NumPy
+            # self.outgoing_deltas = torch.log(
+            #     torch.clamp_min(
+            #         self.outgoing_deltas,
+            #         torch.min(
+            #             torch.abs(
+            #                 self.outgoing_deltas[
+            #                     torch.nonzero(self.outgoing_deltas, as_tuple=True)
+            #                 ]
+            #             )
+            #         ),
+            #     )
+            # )
 
         if self.normalize:
             self.setup_normalization(
