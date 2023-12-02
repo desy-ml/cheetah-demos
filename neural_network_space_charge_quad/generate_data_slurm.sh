@@ -14,6 +14,6 @@ cd /home/kaiserja/beegfs/cheetah-demos/neural_network_space_charge_quad
 
 export OMP_NUM_THREADS=1    # Much faster when running with parallel samples
 
-python generate_data.py 6000 data_log_small/train.yaml
+python generate_data.py 2000 data_test/test.yaml
 
 exit
