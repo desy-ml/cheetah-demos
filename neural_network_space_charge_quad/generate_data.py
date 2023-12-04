@@ -106,7 +106,7 @@ def compute_ocelot_cheetah_delta(
     return incoming, outgoing_deltas
 
 
-@retry((ValueError, FloatingPointError, ValueError), tries=100)
+@retry((ValueError, FloatingPointError), tries=100)
 def generate_sample() -> Dict:
     """
     Generate a sample of tracking through a quadrupole magnet in Ocelot. It saves
@@ -122,10 +122,6 @@ def generate_sample() -> Dict:
     incoming_cheetah, outgoing_deltas = compute_ocelot_cheetah_delta(
         p_array_incoming, length, k1, p_array_outgoing
     )
-
-    # Ensure we only get positive outgoing deltas
-    if any(delta <= 0 for delta in outgoing_deltas.values()):
-        raise ValueError("Negative outgoing deltas")
 
     # Return dictionary of incoming and outgoing beam parameters as well as controls
     return {
