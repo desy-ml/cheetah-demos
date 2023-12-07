@@ -106,6 +106,8 @@ def compute_ocelot_cheetah_delta(
     return incoming, outgoing_deltas
 
 
+# Ocelot sometimes arbitrarily encounters numerical errors that result in exceptions
+# being raised. In such case, we simply retry as a workaround.
 @retry((ValueError, FloatingPointError), tries=100)
 def generate_sample() -> Dict:
     """
