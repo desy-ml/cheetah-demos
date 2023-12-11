@@ -1,6 +1,6 @@
 black
 botorch
-git+https://github.com/desy-ml/cheetah.git  # TODO: Update to cheetah-accelerator>=0.6.2
+git+https://github.com/desy-ml/cheetah.git@114-tests-are-failing-on-gpu-machine  # TODO: Update to cheetah-accelerator>=0.6.2
 flake8
 isort
 jupyter
