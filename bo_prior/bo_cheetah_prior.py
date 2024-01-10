@@ -67,10 +67,14 @@ class FodoPriorMean(Mean):
         self.incoming_beam = incoming_beam
         self.segment = cheetah.Segment(
             [
-                cheetah.Quadrupole(length=0.1, k1=torch.tensor(0.0), name="Q1"),
-                cheetah.Drift(length=0.5, name="D1"),
-                cheetah.Quadrupole(length=0.1, k1=torch.tensor(0.0), name="Q2"),
-                cheetah.Drift(length=0.5, name="D2"),
+                cheetah.Quadrupole(
+                    length=torch.tensor(0.1), k1=torch.tensor(0.0), name="Q1"
+                ),
+                cheetah.Drift(length=torch.tensor(0.5), name="D1"),
+                cheetah.Quadrupole(
+                    length=torch.tensor(0.1), k1=torch.tensor(0.0), name="Q2"
+                ),
+                cheetah.Drift(length=torch.tensor(0.5), name="D2"),
             ]
         )
 
@@ -86,8 +90,8 @@ class FodoPriorMean(Mean):
         self.register_constraint("raw_drift_length", drift_length_constraint)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        self.segment.D1.length = self.drift_length
-        self.segment.D2.length = self.drift_length
+        self.segment.D1.length = self.drift_length.float()
+        self.segment.D2.length = self.drift_length.float()
 
         input_shape = X.shape
         X = X.reshape(-1, 2)

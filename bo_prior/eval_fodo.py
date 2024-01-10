@@ -1,15 +1,21 @@
-"""Evaluate the FODO optimization task using different optimizers."""
+"""Evaluate the FODO optimization task using different optimizers.
+
+task modes:
+    - matched: Optimize the FODO lattice (*) for a matched beam.
+    - mismatched: Optimize a new FODO lattice for a mismatched prior (for *).
+    - matched_prior_newtask: Optimize the new FODO lattice for a matched with a matched priror.
+"""
 import os
 
+import bo_cheetah_prior
 import cheetah
 import pandas as pd
 import torch
+import tqdm
 from xopt import VOCS, Evaluator, Xopt
 from xopt.generators.bayesian import UpperConfidenceBoundGenerator
 from xopt.generators.bayesian.models.standard import StandardModelConstructor
 from xopt.generators.scipy.neldermead import NelderMeadGenerator
-
-import bo_cheetah_prior
 
 
 def main(args):
@@ -31,6 +37,21 @@ def main(args):
             function_kwargs={"incoming_beam": incoming_beam},
         )
     elif args.task == "mismatched":
+        incoming_beam = cheetah.ParameterBeam.from_parameters(
+            sigma_x=torch.tensor(1e-3),
+            sigma_y=torch.tensor(1e-3),
+            sigma_xp=torch.tensor(1e-4),
+            sigma_yp=torch.tensor(1e-4),
+            energy=torch.tensor(100e6),
+        )
+        evaluator = Evaluator(
+            function=bo_cheetah_prior.simple_fodo_problem,
+            function_kwargs={
+                "incoming_beam": incoming_beam,
+                "lattice_distances": {"drift_length": 0.7},
+            },
+        )
+    elif args.task == "matched_prior_newtask":
         incoming_beam = cheetah.ParameterBeam.from_parameters(
             sigma_x=torch.tensor(1e-3),
             sigma_y=torch.tensor(1e-3),
@@ -68,6 +89,22 @@ def main(args):
                     mean_modules={"mae": prior_mean_module},
                     trainable_mean_keys=["mae"],  # Allow the prior mean to be trained
                 )
+            elif args.task == "matched_prior_newtask":
+                incoming_beam = cheetah.ParameterBeam.from_parameters(
+                    sigma_x=torch.tensor(1e-3),
+                    sigma_y=torch.tensor(1e-3),
+                    sigma_xp=torch.tensor(1e-4),
+                    sigma_yp=torch.tensor(1e-4),
+                    energy=torch.tensor(100e6),
+                )
+                prior_mean_module = bo_cheetah_prior.FodoPriorMean(
+                    incoming_beam=incoming_beam
+                )
+                prior_mean_module.segment.D1.length = 0.7
+                prior_mean_module.segment.D2.length = 0.7
+                gp_constructor = StandardModelConstructor(
+                    mean_modules={"mae": prior_mean_module}
+                )
             generator = UpperConfidenceBoundGenerator(
                 beta=2.0, vocs=vocs, gp_constructor=gp_constructor
             )
@@ -90,7 +127,10 @@ def main(args):
             }
         )
         # Start Optimization
-        xopt.run()
+        for _ in tqdm.tqdm(range(args.max_evaluation_steps)):
+            xopt.step()
+
+        # xopt.run()
         # Post processing the dataframes
         xopt.data.index.name = "step"
         xopt.data["run"] = i
@@ -130,7 +170,7 @@ if __name__ == "__main__":
         "-t",
         type=str,
         default="matched",
-        choices=["matched", "mismatched"],
+        choices=["matched", "mismatched", "matched_prior_newtask"],
         help="Task to run. See bo_cheetah_prior.py for options.",
     )
     parser.add_argument(
