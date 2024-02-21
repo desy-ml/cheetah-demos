@@ -1,0 +1,45 @@
+&NEWRUN
+    Head='ares_sc_fun_beam'
+    Nloop=1
+    Distribution= 'interesting_initial_beam.001'
+    AUTO_PHASE=F
+    check_ref_part=F
+    Lprompt=F
+/
+
+&OUTPUT
+    ZSTART=0.0
+    ZSTOP=2.046
+    Zphase=1
+    PhaseS=T
+/
+
+&CHARGE
+    LSPCH=T
+/
+
+&QUADRUPOLE
+    Lquad=T
+    Q_length(1)=0.122
+    Q_length(2)=0.122
+    Q_length(3)=0.122
+    Q_pos(1)=0.1750
+    Q_pos(2)=0.7250
+    Q_pos(3)=1.275
+    Q_K(1)=5.0
+    Q_K(2)=-10.0
+    Q_K(3)=5.0
+/
+
+&DIPOLE
+    LDipole = False
+    D1(1:4) = (0.5, 0.0), (0.5, 0.0), (0.5, 0.0), (0.5, 0.0)
+    D2(1:4) = (-0.5, 0.0), (-0.5, 0.0), (-0.5, 0.0), (-0.5, 0.0)
+    D3(1:4) = (0.5, 0.02), (0.5, 0.02), (0.5, 0.02), (0.5, 0.02)
+    D4(1:4) = (-0.5, 0.02), (-0.5, 0.02), (-0.5, 0.02), (-0.5, 0.02)
+    D_zoff(1:2) = 1.275, 1.576
+    D_Type(1:2) = 'ver', 'hor'
+    D_Gap(1:2,1) = 0.005, 0.005
+    D_Gap(1:2,2) = 0.005, 0.005
+    D_radius(1:2) = -20.0, 10.0
+/
