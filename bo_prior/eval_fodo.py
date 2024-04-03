@@ -5,6 +5,7 @@ task modes:
     - mismatched: Optimize a new FODO lattice for a mismatched prior (for *).
     - matched_prior_newtask: Optimize the new FODO lattice for a matched with a matched priror.
 """
+
 import os
 
 import bo_cheetah_prior
@@ -37,12 +38,13 @@ def main(args):
             function_kwargs={"incoming_beam": incoming_beam},
         )
     elif args.task == "mismatched":
+        # Both incoming beam and the lattice distance are incorrect
         incoming_beam = cheetah.ParameterBeam.from_parameters(
-            sigma_x=torch.tensor(1e-3),
-            sigma_y=torch.tensor(1e-3),
-            sigma_xp=torch.tensor(1e-4),
-            sigma_yp=torch.tensor(1e-4),
-            energy=torch.tensor(100e6),
+            sigma_x=torch.tensor([1e-3]),
+            sigma_y=torch.tensor([1e-3]),
+            sigma_xp=torch.tensor([1e-4]),
+            sigma_yp=torch.tensor([1e-4]),
+            energy=torch.tensor([100e6]),
         )
         evaluator = Evaluator(
             function=bo_cheetah_prior.simple_fodo_problem,
@@ -52,12 +54,13 @@ def main(args):
             },
         )
     elif args.task == "matched_prior_newtask":
+        # Lattice distance
         incoming_beam = cheetah.ParameterBeam.from_parameters(
-            sigma_x=torch.tensor(1e-3),
-            sigma_y=torch.tensor(1e-3),
-            sigma_xp=torch.tensor(1e-4),
-            sigma_yp=torch.tensor(1e-4),
-            energy=torch.tensor(100e6),
+            sigma_x=torch.tensor([1e-3]),
+            sigma_y=torch.tensor([1e-3]),
+            sigma_xp=torch.tensor([1e-4]),
+            sigma_yp=torch.tensor([1e-4]),
+            energy=torch.tensor([100e6]),
         )
         evaluator = Evaluator(
             function=bo_cheetah_prior.simple_fodo_problem,
@@ -91,17 +94,16 @@ def main(args):
                 )
             elif args.task == "matched_prior_newtask":
                 incoming_beam = cheetah.ParameterBeam.from_parameters(
-                    sigma_x=torch.tensor(1e-3),
-                    sigma_y=torch.tensor(1e-3),
-                    sigma_xp=torch.tensor(1e-4),
-                    sigma_yp=torch.tensor(1e-4),
-                    energy=torch.tensor(100e6),
+                    sigma_x=torch.tensor([1e-3]),
+                    sigma_y=torch.tensor([1e-3]),
+                    sigma_xp=torch.tensor([1e-4]),
+                    sigma_yp=torch.tensor([1e-4]),
+                    energy=torch.tensor([100e6]),
                 )
                 prior_mean_module = bo_cheetah_prior.FodoPriorMean(
                     incoming_beam=incoming_beam
                 )
-                prior_mean_module.segment.D1.length = 0.7
-                prior_mean_module.segment.D2.length = 0.7
+                prior_mean_module.drift_length = 0.7
                 gp_constructor = StandardModelConstructor(
                     mean_modules={"mae": prior_mean_module}
                 )

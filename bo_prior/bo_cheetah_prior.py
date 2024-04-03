@@ -16,11 +16,11 @@ def simple_fodo_problem(
 ) -> Dict[str, float]:
     if incoming_beam is None:
         incoming_beam = cheetah.ParameterBeam.from_parameters(
-            sigma_x=torch.tensor(1e-4),
-            sigma_y=torch.tensor(2e-3),
-            sigma_xp=torch.tensor(1e-4),
-            sigma_yp=torch.tensor(1e-4),
-            energy=torch.tensor(100e6),
+            sigma_x=torch.tensor([1e-4]),
+            sigma_y=torch.tensor([2e-3]),
+            sigma_xp=torch.tensor([1e-4]),
+            sigma_yp=torch.tensor([1e-4]),
+            energy=torch.tensor([100e6]),
         )
     quad_length = torch.tensor(lattice_distances.get("quad_length", 0.1))
     drift_length = torch.tensor(lattice_distances.get("drift_length", 0.5))
@@ -28,13 +28,17 @@ def simple_fodo_problem(
     fodo_segment = cheetah.Segment(
         [
             cheetah.Quadrupole(
-                length=quad_length, k1=torch.tensor(input_param["q1"]), name="Q1"
+                length=quad_length.unsqueeze(-1),
+                k1=torch.tensor(input_param["q1"], dtype=torch.float).unsqueeze(-1),
+                name="Q1",
             ),
-            cheetah.Drift(length=drift_length, name="D1"),
+            cheetah.Drift(length=drift_length.unsqueeze(-1), name="D1"),
             cheetah.Quadrupole(
-                length=quad_length, k1=torch.tensor(input_param["q2"]), name="Q2"
+                length=quad_length.unsqueeze(-1),
+                k1=torch.tensor(input_param["q2"], dtype=torch.float).unsqueeze(-1),
+                name="Q2",
             ),
-            cheetah.Drift(length=drift_length, name="D1"),
+            cheetah.Drift(length=drift_length.unsqueeze(-1), name="D1"),
         ]
     )
 
@@ -43,10 +47,10 @@ def simple_fodo_problem(
     beam_size_mse = 0.5 * (out_beam.sigma_x**2 + out_beam.sigma_y**2)
     beam_size_mae = 0.5 * (out_beam.sigma_x.abs() + out_beam.sigma_y.abs())
     return {
-        "mse": beam_size_mse.detach().numpy(),
-        "log_mse": beam_size_mse.log().detach().numpy(),
-        "mae": beam_size_mae.detach().numpy(),
-        "log_mae": beam_size_mae.log().detach().numpy(),
+        "mse": float(beam_size_mse.detach()),
+        "log_mse": float(beam_size_mse.log()),
+        "mae": float(beam_size_mae.detach()),
+        "log_mae": float(beam_size_mae.log().detach()),
     }
 
 
@@ -58,25 +62,22 @@ class FodoPriorMean(Mean):
         super().__init__()
         if incoming_beam is None:
             incoming_beam = cheetah.ParameterBeam.from_parameters(
-                sigma_x=torch.tensor(1e-4),
-                sigma_y=torch.tensor(2e-3),
-                sigma_xp=torch.tensor(1e-4),
-                sigma_yp=torch.tensor(1e-4),
-                energy=torch.tensor(100e6),
+                sigma_x=torch.tensor([1e-4]),
+                sigma_y=torch.tensor([2e-3]),
+                sigma_xp=torch.tensor([1e-4]),
+                sigma_yp=torch.tensor([1e-4]),
+                energy=torch.tensor([100e6]),
             )
         self.incoming_beam = incoming_beam
-        self.segment = cheetah.Segment(
-            [
-                cheetah.Quadrupole(
-                    length=torch.tensor(0.1), k1=torch.tensor(0.0), name="Q1"
-                ),
-                cheetah.Drift(length=torch.tensor(0.5), name="D1"),
-                cheetah.Quadrupole(
-                    length=torch.tensor(0.1), k1=torch.tensor(0.0), name="Q2"
-                ),
-                cheetah.Drift(length=torch.tensor(0.5), name="D2"),
-            ]
+        self.Q1 = cheetah.Quadrupole(
+            length=torch.tensor([0.1]), k1=torch.tensor([0.1]), name="Q1"
         )
+        self.D1 = cheetah.Drift(length=torch.tensor([0.1]), name="D1")
+        self.Q2 = cheetah.Quadrupole(
+            length=torch.tensor([0.1]), k1=torch.tensor([0.1]), name="Q2"
+        )
+        self.D2 = cheetah.Drift(length=torch.tensor([0.1]), name="D2")
+        self.segment = cheetah.Segment(elements=[self.Q1, self.D1, self.Q2, self.D2])
 
         # Introduce a fittable parameter for the lattice
         drift_length_constraint = Positive()
@@ -90,19 +91,24 @@ class FodoPriorMean(Mean):
         self.register_constraint("raw_drift_length", drift_length_constraint)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        self.segment.D1.length = self.drift_length.float()
-        self.segment.D2.length = self.drift_length.float()
 
-        input_shape = X.shape
-        X = X.reshape(-1, 2)
-        y_s = torch.zeros(X.shape[:-1])
-        for i, input_values in enumerate(X):
-            self.segment.Q1.k1 = input_values[0].float()
-            self.segment.Q2.k1 = input_values[1].float()
-            out_beam = self.segment(self.incoming_beam)
-            beam_size_mae = 0.5 * (out_beam.sigma_x.abs() + out_beam.sigma_y.abs())
-            y_s[i] = beam_size_mae
-        return y_s.reshape(input_shape[:-1])
+        batch_shape = X.shape[:-1]
+
+        # Build new lattices with the given parameters
+        Q1 = self.Q1.broadcast(batch_shape)
+        Q1.k1 = X[..., 0].float()
+        Q2 = self.Q2.broadcast(batch_shape)
+        Q2.k1 = X[..., 1].float()
+        self.D1.length = self.drift_length.float()
+        self.D2.length = self.drift_length.float()
+        D1 = self.D1.broadcast(batch_shape)
+        D2 = self.D2.broadcast(batch_shape)
+        self.segment = cheetah.Segment(elements=[Q1, D1, Q2, D2])
+        # Broadcast incoming beam to batch shape
+        incoming_beam = self.incoming_beam.broadcast(X.shape[:-1])
+        out_beam = self.segment(incoming_beam)
+        beam_size_mae = 0.5 * (out_beam.sigma_x.abs() + out_beam.sigma_y.abs())
+        return beam_size_mae
 
     @property
     def drift_length(self):
