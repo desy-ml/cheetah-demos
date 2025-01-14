@@ -18,8 +18,8 @@ def simple_fodo_problem(
         incoming_beam = cheetah.ParameterBeam.from_parameters(
             sigma_x=torch.tensor(1e-4),
             sigma_y=torch.tensor(2e-3),
-            sigma_xp=torch.tensor(1e-4),
-            sigma_yp=torch.tensor(1e-4),
+            sigma_px=torch.tensor(1e-4),
+            sigma_py=torch.tensor(1e-4),
             energy=torch.tensor(100e6),
         )
     quad_length = torch.tensor(lattice_distances.get("quad_length", 0.1))
