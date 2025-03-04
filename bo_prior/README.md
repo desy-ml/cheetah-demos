@@ -15,24 +15,26 @@ Here we use the BO implementation from the Xopt package.
 
 ## Running Evaluations
 
-Switch to `--task=mismatched` to run evaluation for mismatched lattice.
+Possible arguments:
+
+- Switch to `--task=mismatched` to run evaluation for mismatched lattice.
+- Use `-n` to change the number of trials to run for each configuration, by default `-n 10` is used.
+- Use `-o path_to_dir` to specify the output folder, by default the runs will be saved ot `data/` folder
 
 ### Nelder-Mead Simplex
 
 ```bash
-python eval_fodo.py --optimizer=NM -s=50 --task=matched
+python eval_fodo.py --optimizer=NM -s=50 --task=matched_prior_newtask
 ```
 
-### Normal BO with UCB
+### Normal BO with UCB and Zero Mean
 
 ```bash
-python eval_fodo.py --optimizer=BO -s=50 --task=matched
+python eval_fodo.py --optimizer=BO -s=50 --task=matched_prior_newtask
 ```
 
-### BO with Cheetah Prior Mean
-
-Note that this could take longer.
+### BO with Cheetah Model as Prior Mean
 
 ```bash
-python eval_fodo.py --optimizer=BO_prior -s=50 --task=matched
+python eval_fodo.py --optimizer=BO_prior -s=50 --task=matched_prior_newtask
 ```
