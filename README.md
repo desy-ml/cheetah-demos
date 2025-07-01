@@ -3,6 +3,8 @@
 
 # Cheetah Demos
 
+<img src="https://github.com/desy-ml/cheetah-demos/raw/master/images/logo.png" align="right" width="25%"/>
+
 This repository contains a collection of demos accompanying the [_Cheetah_](https://github.com/desy-ml/cheetah) high-speed, differentiable beam dynamics simulation Python package.
 
 For more information, see the paper where these demos were first introduced: [_Cheetah: Bridging the Gap Between Machine Learning and Particle Accelerator Physics with High-Speed, Differentiable Simulations_](https://arxiv.org/abs/2401.05815).
@@ -21,12 +23,18 @@ For more information, see the paper where these demos were first introduced: [_C
 Please cite the original paper that these demos were introduced in:
 
 ```bibtex
-@misc{kaiser2024cheetah,
-  title         = {Cheetah: Bridging the Gap Between Machine Learning and Particle Accelerator Physics with High-Speed, Differentiable Simulations},
-  author        = {Kaiser, Jan and Xu, Chenran and Eichler, Annika and {Santamaria Garcia}, Andrea},
-  year          = {2024},
-  eprint        = {2401.05815},
-  archiveprefix = {arXiv},
-  primaryclass  = {physics.acc-ph}
+@article{kaiser2024cheetah,
+    title        = {Bridging the gap between machine learning and particle accelerator physics with high-speed, differentiable simulations},
+    author       = {Kaiser, Jan and Xu, Chenran and Eichler, Annika and Santamaria Garcia, Andrea},
+    year         = 2024,
+    month        = {May},
+    journal      = {Phys. Rev. Accel. Beams},
+    publisher    = {American Physical Society},
+    volume       = 27,
+    pages        = {054601},
+    doi          = {10.1103/PhysRevAccelBeams.27.054601},
+    url          = {https://link.aps.org/doi/10.1103/PhysRevAccelBeams.27.054601},
+    issue        = 5,
+    numpages     = 17
 }
 ```
