@@ -1,6 +1,6 @@
 black
 botorch
-cheetah-accelerator>=0.7.1
+cheetah-accelerator>=0.7.4
 flake8
 isort
 jupyter
