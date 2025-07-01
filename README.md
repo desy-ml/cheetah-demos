@@ -3,6 +3,8 @@
 
 # Cheetah Demos
 
+<img src="https://github.com/desy-ml/cheetah-demos/raw/master/images/logo.png" align="right" width="25%"/>
+
 This repository contains a collection of demos accompanying the [_Cheetah_](https://github.com/desy-ml/cheetah) high-speed, differentiable beam dynamics simulation Python package.
 
 For more information, see the paper where these demos were first introduced: [_Cheetah: Bridging the Gap Between Machine Learning and Particle Accelerator Physics with High-Speed, Differentiable Simulations_](https://arxiv.org/abs/2401.05815).
