@@ -18,8 +18,8 @@ def simple_fodo_problem(
         incoming_beam = cheetah.ParameterBeam.from_parameters(
             sigma_x=torch.tensor(1e-4),
             sigma_y=torch.tensor(2e-3),
-            sigma_xp=torch.tensor(1e-4),
-            sigma_yp=torch.tensor(1e-4),
+            sigma_px=torch.tensor(1e-4),
+            sigma_py=torch.tensor(1e-4),
             energy=torch.tensor(100e6),
         )
     quad_length = torch.tensor(lattice_distances.get("quad_length", 0.1))
@@ -60,23 +60,20 @@ class FodoPriorMean(Mean):
             incoming_beam = cheetah.ParameterBeam.from_parameters(
                 sigma_x=torch.tensor(1e-4),
                 sigma_y=torch.tensor(2e-3),
-                sigma_xp=torch.tensor(1e-4),
-                sigma_yp=torch.tensor(1e-4),
+                sigma_px=torch.tensor(1e-4),
+                sigma_py=torch.tensor(1e-4),
                 energy=torch.tensor(100e6),
             )
         self.incoming_beam = incoming_beam
-        self.segment = cheetah.Segment(
-            [
-                cheetah.Quadrupole(
-                    length=torch.tensor(0.1), k1=torch.tensor(0.0), name="Q1"
-                ),
-                cheetah.Drift(length=torch.tensor(0.5), name="D1"),
-                cheetah.Quadrupole(
-                    length=torch.tensor(0.1), k1=torch.tensor(0.0), name="Q2"
-                ),
-                cheetah.Drift(length=torch.tensor(0.5), name="D2"),
-            ]
+        self.Q1 = cheetah.Quadrupole(
+            length=torch.tensor([0.1]), k1=torch.tensor([0.1]), name="Q1"
         )
+        self.D1 = cheetah.Drift(length=torch.tensor([0.1]), name="D1")
+        self.Q2 = cheetah.Quadrupole(
+            length=torch.tensor([0.1]), k1=torch.tensor([0.1]), name="Q2"
+        )
+        self.D2 = cheetah.Drift(length=torch.tensor([0.1]), name="D2")
+        self.segment = cheetah.Segment(elements=[self.Q1, self.D1, self.Q2, self.D2])
 
         # Introduce a fittable parameter for the lattice
         drift_length_constraint = Positive()
@@ -90,19 +87,15 @@ class FodoPriorMean(Mean):
         self.register_constraint("raw_drift_length", drift_length_constraint)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        self.segment.D1.length = self.drift_length.float()
-        self.segment.D2.length = self.drift_length.float()
+        self.Q1.k1 = X[..., 0]
 
-        input_shape = X.shape
-        X = X.reshape(-1, 2)
-        y_s = torch.zeros(X.shape[:-1])
-        for i, input_values in enumerate(X):
-            self.segment.Q1.k1 = input_values[0].float()
-            self.segment.Q2.k1 = input_values[1].float()
-            out_beam = self.segment(self.incoming_beam)
-            beam_size_mae = 0.5 * (out_beam.sigma_x.abs() + out_beam.sigma_y.abs())
-            y_s[i] = beam_size_mae
-        return y_s.reshape(input_shape[:-1])
+        self.Q2.k1 = X[..., 1]
+        self.D1.length = self.drift_length
+        self.D2.length = self.drift_length
+
+        out_beam = self.segment(self.incoming_beam)
+        beam_size_mae = 0.5 * (out_beam.sigma_x.abs() + out_beam.sigma_y.abs())
+        return beam_size_mae
 
     @property
     def drift_length(self):

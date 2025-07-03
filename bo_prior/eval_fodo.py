@@ -3,8 +3,10 @@
 task modes:
     - matched: Optimize the FODO lattice (*) for a matched beam.
     - mismatched: Optimize a new FODO lattice for a mismatched prior (for *).
-    - matched_prior_newtask: Optimize the new FODO lattice for a matched with a matched priror.
+    - matched_prior_newtask: Optimize the new FODO lattice for a matched with a matched
+        prior.
 """
+
 import os
 
 import bo_cheetah_prior
@@ -20,7 +22,7 @@ from xopt.generators.scipy.neldermead import NelderMeadGenerator
 
 def main(args):
     # VOCS
-    vocs_config = """ 
+    vocs_config = """
         variables:
             q1: [-30, 15]
             q2: [-15, 30]
@@ -40,8 +42,8 @@ def main(args):
         incoming_beam = cheetah.ParameterBeam.from_parameters(
             sigma_x=torch.tensor(1e-3),
             sigma_y=torch.tensor(1e-3),
-            sigma_xp=torch.tensor(1e-4),
-            sigma_yp=torch.tensor(1e-4),
+            sigma_px=torch.tensor(1e-4),
+            sigma_py=torch.tensor(1e-4),
             energy=torch.tensor(100e6),
         )
         evaluator = Evaluator(
@@ -55,8 +57,8 @@ def main(args):
         incoming_beam = cheetah.ParameterBeam.from_parameters(
             sigma_x=torch.tensor(1e-3),
             sigma_y=torch.tensor(1e-3),
-            sigma_xp=torch.tensor(1e-4),
-            sigma_yp=torch.tensor(1e-4),
+            sigma_px=torch.tensor(1e-4),
+            sigma_py=torch.tensor(1e-4),
             energy=torch.tensor(100e6),
         )
         evaluator = Evaluator(
@@ -93,15 +95,15 @@ def main(args):
                 incoming_beam = cheetah.ParameterBeam.from_parameters(
                     sigma_x=torch.tensor(1e-3),
                     sigma_y=torch.tensor(1e-3),
-                    sigma_xp=torch.tensor(1e-4),
-                    sigma_yp=torch.tensor(1e-4),
+                    sigma_px=torch.tensor(1e-4),
+                    sigma_py=torch.tensor(1e-4),
                     energy=torch.tensor(100e6),
                 )
                 prior_mean_module = bo_cheetah_prior.FodoPriorMean(
                     incoming_beam=incoming_beam
                 )
-                prior_mean_module.segment.D1.length = 0.7
-                prior_mean_module.segment.D2.length = 0.7
+                prior_mean_module.segment.D1.length = torch.tensor(0.7)
+                prior_mean_module.segment.D2.length = torch.tensor(0.7)
                 gp_constructor = StandardModelConstructor(
                     mean_modules={"mae": prior_mean_module}
                 )
